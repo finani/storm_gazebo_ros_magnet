@@ -1,7 +1,6 @@
 <launch>
     <include file="$(find gazebo_ros)/launch/empty_world.launch">
         <arg name="gui" default="true"/>
-        <!-- arg name="world_name" value="$(arg world)"/ -->
         <arg name="world_name" default="$(find storm_gazebo_magnet)/worlds/dipole_magnet.world"/>
         <arg name="debug" default="false"/>
         <arg name="verbose" default="false"/>
