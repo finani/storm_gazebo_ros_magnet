@@ -26,7 +26,8 @@
 
 #include <gazebo/common/common.hh>
 
-namespace gazebo {
+using namespace gazebo;
+using namespace ignition;
 
 class DipoleMagnetContainer {
  public:
@@ -40,9 +41,9 @@ class DipoleMagnetContainer {
 
   struct Magnet {
     bool calculate;
-    math::Vector3 moment;
-    math::Pose offset;
-    math::Pose pose;
+    math::Vector3d moment;
+    math::Pose3d offset;
+    math::Pose3d pose;
     std::uint32_t model_id;
   };
 
@@ -62,6 +63,5 @@ class DipoleMagnetContainer {
 
   MagnetPtrV magnets;
 };
-}  // namespace gazebo
 
-#endif  // INCLUDE_MAC_GAZEBO_DIPOLE_MAGNET_DIPOLE_MAGNET_CONTAINER_H_
+#endif // INCLUDE_MAC_GAZEBO_DIPOLE_MAGNET_DIPOLE_MAGNET_CONTAINER_H_
