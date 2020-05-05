@@ -52,3 +52,13 @@ If you use this work, please cite our [RSS 2016 paper](http://www.roboticsprocee
     DOI       = {10.15607/RSS.2016.XII.018} 
 } 
 ```
+
+## Add compatibility with gazebo9
+
+1. gedit ~/.bashrc
+```
+export GAZEBO_PLUGIN_PATH=$HOME/jpl/build/storm_gazebo_magnet:$GAZEBO_PLUGIN_PATH
+```
+2. source ~/.bashrc
+
+3. roslaunch storm_gazebo_magnet storm_gazebo_ros_magnet.launch
