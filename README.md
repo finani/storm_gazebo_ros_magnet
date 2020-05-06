@@ -61,4 +61,19 @@ export GAZEBO_PLUGIN_PATH=$HOME/jpl/build/storm_gazebo_magnet:$GAZEBO_PLUGIN_PAT
 ```
 2. source ~/.bashrc
 
-3. roslaunch storm_gazebo_magnet storm_gazebo_ros_magnet.launch
+3. gedit dipole_magnet.world
+```
+<plugin name="dipole_magnet" filename="libstorm_gazebo_dipole_magnet.so">
+  <bodyName>magnet</bodyName>
+  <dipole_moment>0 0 1.26</dipole_moment>
+  <xyzOffset>0 0 0</xyzOffset>
+  <rpyOffset>0 0 0</rpyOffset>
+  <!-- Set to false if not using ROS -->
+  <shouldPublish>true</shouldPublish>
+  <topicNs>magnet_name</topicNs>
+  <updateRate>100</updateRate>
+  <debug>true</debug>
+</plugin>
+```
+
+4. roslaunch storm_gazebo_magnet storm_gazebo_ros_magnet.launch
