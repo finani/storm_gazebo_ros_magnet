@@ -23,7 +23,6 @@
 #include <ros/advertise_options.h>
 #include <ros/callback_queue.h>
 #include <ros/ros.h>
-#include <ros/subscribe_options.h>
 
 #include <iostream>
 #include <vector>
