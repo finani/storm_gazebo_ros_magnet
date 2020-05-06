@@ -97,6 +97,9 @@
           <bodyName>magnet</bodyName>
           <dipole_moment>0 0 970</dipole_moment>
           <xyzOffset>0 0 0</xyzOffset>
+          <rpyOffset>0 0 0</rpyOffset>
+          <shouldPublish>false</shouldPublish>
+          <debug>false</debug>
       </plugin>
     </model>        
 
@@ -136,10 +139,12 @@
       <plugin name="dipole_magnet" filename="libstorm_gazebo_dipole_magnet.so">
         <bodyName>magnet</bodyName>
         <dipole_moment>0 0 1.26</dipole_moment>
+        <xyzOffset>0 0 0</xyzOffset>
+        <rpyOffset>0 0 0</rpyOffset>
+        <debug>false</debug>
         <!-- Set to false if not using ROS -->
         <shouldPublish>true</shouldPublish>
-        <debug>true</debug>
-        <topicNs>magnet_name</topicNs>
+        <topicNs>magnet_weebee</topicNs>
         <updateRate>100</updateRate>
       </plugin>
     </model>
