@@ -68,11 +68,11 @@ export GAZEBO_PLUGIN_PATH=$HOME/jpl/build/storm_gazebo_magnet:$GAZEBO_PLUGIN_PAT
   <dipole_moment>0 0 1.26</dipole_moment>
   <xyzOffset>0 0 0</xyzOffset>
   <rpyOffset>0 0 0</rpyOffset>
+  <debug>false</debug>
   <!-- Set to false if not using ROS -->
   <shouldPublish>true</shouldPublish>
-  <topicNs>magnet_name</topicNs>
+  <topicNs>magnet_weebee</topicNs>
   <updateRate>100</updateRate>
-  <debug>true</debug>
 </plugin>
 ```
 
