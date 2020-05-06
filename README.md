@@ -53,7 +53,7 @@ If you use this work, please cite our [RSS 2016 paper](http://www.roboticsprocee
 } 
 ```
 
-## Add a compatibility with gazebo9 and change it to an electro-magnet
+## Add compatibility with gazebo9 and change it to an electro-magnet
 
 1. gedit ~/.bashrc
 ```
