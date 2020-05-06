@@ -138,7 +138,8 @@
         <dipole_moment>0 0 1.26</dipole_moment>
         <!-- Set to false if not using ROS -->
         <shouldPublish>true</shouldPublish>
-        <topicNs>capsule</topicNs>
+        <debug>true</debug>
+        <topicNs>magnet_name</topicNs>
         <updateRate>100</updateRate>
       </plugin>
     </model>

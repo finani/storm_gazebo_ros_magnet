@@ -20,9 +20,10 @@
 #include <boost/thread.hpp>
 #include <boost/thread/mutex.hpp>
 
-#include <ros/callback_queue.h>
 #include <ros/advertise_options.h>
+#include <ros/callback_queue.h>
 #include <ros/ros.h>
+#include <ros/subscribe_options.h>
 
 #include <iostream>
 #include <vector>
@@ -38,7 +39,6 @@ DipoleMagnet::DipoleMagnet(): ModelPlugin() {
 }
 
 DipoleMagnet::~DipoleMagnet() {
-  // event::Events::DisconnectWorldUpdateBegin(this->update_connection); // TODO
   this->update_connection.reset();
   if (this->should_publish) {
     this->queue.clear();
@@ -142,8 +142,26 @@ void DipoleMagnet::Load(physics::ModelPtr _parent, sdf::ElementPtr _sdf) {
         boost::bind( &DipoleMagnet::Connect,this),
         boost::bind( &DipoleMagnet::Disconnect,this), ros::VoidPtr(), &this->queue);
 
+    // ros::SubscribeOptions so =
+    //     ros::SubscribeOptions::create<std_msgs::Bool>(
+    //     this->topic_ns + "/cmd", 1,
+    //     boost::bind(&DipoleMagnet::Magnet_CB, this, _1),
+    //     ros::VoidPtr(), &this->queue);
+    // this->magnet_sub = this->rosnode->subscribe(so);
+    // this->magnet_sub = this->rosnode->subscribe<std_msgs::Bool>(
+    //     this->topic_ns + "/cmd", 1,
+    //     boost::bind( &DipoleMagnet::Magnet_CB,this), ros::VoidPtr(),
+    //     &this->queue);
+    this->magnet_sub = this->rosnode->subscribe(
+        this->topic_ns + "/cmd", 1, &DipoleMagnet::Magnet_CB, this);
+
     // Custom Callback Queue
     this->callback_queue_thread = boost::thread( boost::bind( &DipoleMagnet::QueueThread,this ) );
+  }
+
+  this->debug = false;
+  if (_sdf->HasElement("debug")) {
+    this->debug = _sdf->GetElement("debug")->Get<bool>();
   }
 
   this->mag->model_id = this->model->GetId();
@@ -215,6 +233,11 @@ void DipoleMagnet::OnUpdate(const common::UpdateInfo & /*_info*/) {
 
       this->link->AddForce(force_tmp);
       this->link->AddTorque(torque_tmp);
+
+      if (this->debug)
+        std::cout << "magnet_msg: " << (this->magnet_cmd ? "true" : "false")
+                  << std::endl
+                  << std::endl;
     }
   }
 
@@ -266,45 +289,57 @@ void DipoleMagnet::GetForceTorque(const math::Pose3d& p_self,
                                   const math::Vector3d& m_other,
                                   math::Vector3d& force,
                                   math::Vector3d& torque) {
-  bool debug = false;
   math::Vector3d p = p_self.Pos() - p_other.Pos();
   math::Vector3d p_unit = p / p.Length();
 
   math::Vector3d m1 = m_other;
   math::Vector3d m2 = m_self;
-  if (debug)
-    std::cout << "p: " << p << " m1: " << m1 << " m2: " << m2 << std::endl;
 
   double K = 3.0 * 1e-7 / pow(p.Length(), 4);
-  force = K * (m2 * (m1.Dot(p_unit)) +  m1 * (m2.Dot(p_unit)) +
-      p_unit*(m1.Dot(m2)) - 5*p_unit*(m1.Dot(p_unit))*(m2.Dot(p_unit)));
 
   double Ktorque = 1e-7 / pow(p.Length(), 3);
   math::Vector3d B1 = Ktorque * (3 * (m1.Dot(p_unit)) * p_unit - m1);
-  torque = m2.Cross(B1);
-  if (debug)
-    std::cout << "B: " << B1 << " K: " << Ktorque << " t: " << torque << std::endl;
+  if (this->magnet_cmd) {
+    force = K *
+        (m2 * (m1.Dot(p_unit)) + m1 * (m2.Dot(p_unit)) + p_unit * (m1.Dot(m2)) -
+         5 * p_unit * (m1.Dot(p_unit)) * (m2.Dot(p_unit)));
+
+    torque = m2.Cross(B1);
+  }
+  if (this->debug) {
+    std::cout << std::setprecision(3);
+    std::cout << "p: " << p << "\tm1: " << m1 << "\tm2: " << m2 << std::endl;
+    std::cout << "B: " << B1 << "\tK: " << Ktorque << std::endl;
+    std::cout << "force: " << force << std::endl;
+    std::cout << "torque: " << torque << std::endl << std::endl;
+  }
 }
 
 void DipoleMagnet::GetMFS(const math::Pose3d& p_self,
                           const math::Pose3d& p_other,
                           const math::Vector3d& m_other,
                           math::Vector3d& mfs) {
-  // sensor location
-  math::Vector3d p = p_self.Pos() - p_other.Pos();
-  math::Vector3d p_unit = p / p.Length();
+  if (this->magnet_cmd) {
+    // sensor location
+    math::Vector3d p = p_self.Pos() - p_other.Pos();
+    math::Vector3d p_unit = p / p.Length();
 
-  // Get the field at the sensor location
-  double K = 1e-7 / pow(p.Length(), 3);
-  math::Vector3d B = K * (3 * (m_other.Dot(p_unit)) * p_unit - m_other);
+    // Get the field at the sensor location
+    double K = 1e-7 / pow(p.Length(), 3);
+    math::Vector3d B = K * (3 * (m_other.Dot(p_unit)) * p_unit - m_other);
 
-  // Rotate the B vector into the capsule/body frame
-  math::Vector3d B_body = p_self.Rot().RotateVectorReverse(B);
+    // Rotate the B vector into the capsule/body frame
+    math::Vector3d B_body = p_self.Rot().RotateVectorReverse(B);
 
-  // Assign vector
-  mfs.X() = B_body[0];
-  mfs.Y() = B_body[1];
-  mfs.Z() = B_body[2];
+    // Assign vector
+    mfs.X() = B_body[0];
+    mfs.Y() = B_body[1];
+    mfs.Z() = B_body[2];
+  }
+}
+
+void DipoleMagnet::Magnet_CB(const std_msgs::Bool& msg) {
+  this->magnet_cmd = msg.data;
 }
 
 // Register this plugin with the simulator

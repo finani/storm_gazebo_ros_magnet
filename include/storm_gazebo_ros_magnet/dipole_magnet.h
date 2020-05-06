@@ -26,6 +26,7 @@
 
 #include <geometry_msgs/WrenchStamped.h>
 #include <sensor_msgs/MagneticField.h>
+#include <std_msgs/Bool.h>
 
 #include <memory>
 
@@ -88,6 +89,8 @@ class DipoleMagnet : public ModelPlugin {
               const math::Vector3d& m_other,
               math::Vector3d& mfs);
 
+  void Magnet_CB(const std_msgs::Bool& msg);
+
   // Pointer to the model
  private:
   physics::ModelPtr model;
@@ -101,9 +104,12 @@ class DipoleMagnet : public ModelPlugin {
   std::string topic_ns;
 
   bool should_publish;
+  bool debug;
+  bool magnet_cmd;
   ros::NodeHandle* rosnode;
   ros::Publisher wrench_pub;
   ros::Publisher mfs_pub;
+  ros::Subscriber magnet_sub;
 
   geometry_msgs::WrenchStamped wrench_msg;
   sensor_msgs::MagneticField mfs_msg;
