@@ -53,7 +53,7 @@ If you use this work, please cite our [RSS 2016 paper](http://www.roboticsprocee
 } 
 ```
 
-## Add a compatibility with gazebo9
+## Add a compatibility with gazebo9 and change it to an electro-magnet
 
 1. gedit ~/.bashrc
 ```
@@ -77,3 +77,6 @@ export GAZEBO_PLUGIN_PATH=$HOME/jpl/build/storm_gazebo_magnet:$GAZEBO_PLUGIN_PAT
 ```
 
 4. roslaunch storm_gazebo_magnet storm_gazebo_ros_magnet.launch
+
+5. rostopic pub /magnet_weebee/cmd std_msgs/Bool "data: true"
+> true : false, -r 10
