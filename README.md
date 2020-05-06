@@ -53,7 +53,7 @@ If you use this work, please cite our [RSS 2016 paper](http://www.roboticsprocee
 } 
 ```
 
-## Add compatibility with gazebo9
+## Add a compatibility with gazebo9
 
 1. gedit ~/.bashrc
 ```
