@@ -1,3 +1,33 @@
+## Add compatibility with gazebo9 and change it to an electro-magnet
+> gazebo9 branch by finani
+1. gedit ~/.bashrc
+```
+export GAZEBO_PLUGIN_PATH=$HOME/jpl/build/storm_gazebo_magnet:$GAZEBO_PLUGIN_PATH
+```
+2. source ~/.bashrc
+
+3. gedit dipole_magnet.world
+```
+<plugin name="dipole_magnet" filename="libstorm_gazebo_dipole_magnet.so">
+  <bodyName>magnet</bodyName>
+  <dipole_moment>0 0 1.26</dipole_moment>
+  <xyzOffset>0 0 0</xyzOffset>
+  <rpyOffset>0 0 0</rpyOffset>
+  <debug>false</debug>
+  <!-- Set to false if not using ROS -->
+  <shouldPublish>true</shouldPublish>
+  <topicNs>magnet_weebee</topicNs>
+  <updateRate>100</updateRate>
+</plugin>
+```
+
+4. roslaunch storm_gazebo_magnet storm_gazebo_ros_magnet.launch
+
+5. rostopic pub /magnet_weebee/cmd std_msgs/Bool "data: true"
+> true : false, -r 10
+
+#
+
 This is a Gazebo model plugin that uses the magnetic dipole-dipole model to compute the force and torque between multiple magnets. The plugin is enabled per model and looks for other models in the gazebo world that have the same plugin. It only simulates magnetic interactions between magnets (not other materials).
 
 The plugin requires the `bodyName` tag specifying which link is the actual magnet and `dipole_moment` which is a vector specifying the dipole moment of said magnet.
@@ -52,31 +82,3 @@ If you use this work, please cite our [RSS 2016 paper](http://www.roboticsprocee
     DOI       = {10.15607/RSS.2016.XII.018} 
 } 
 ```
-
-## Add compatibility with gazebo9 and change it to an electro-magnet
-
-1. gedit ~/.bashrc
-```
-export GAZEBO_PLUGIN_PATH=$HOME/jpl/build/storm_gazebo_magnet:$GAZEBO_PLUGIN_PATH
-```
-2. source ~/.bashrc
-
-3. gedit dipole_magnet.world
-```
-<plugin name="dipole_magnet" filename="libstorm_gazebo_dipole_magnet.so">
-  <bodyName>magnet</bodyName>
-  <dipole_moment>0 0 1.26</dipole_moment>
-  <xyzOffset>0 0 0</xyzOffset>
-  <rpyOffset>0 0 0</rpyOffset>
-  <debug>false</debug>
-  <!-- Set to false if not using ROS -->
-  <shouldPublish>true</shouldPublish>
-  <topicNs>magnet_weebee</topicNs>
-  <updateRate>100</updateRate>
-</plugin>
-```
-
-4. roslaunch storm_gazebo_magnet storm_gazebo_ros_magnet.launch
-
-5. rostopic pub /magnet_weebee/cmd std_msgs/Bool "data: true"
-> true : false, -r 10
