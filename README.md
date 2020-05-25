@@ -2,7 +2,7 @@
 > gazebo9 branch by finani
 1. gedit ~/.bashrc
 ```
-export GAZEBO_PLUGIN_PATH=$HOME/jpl/build/storm_gazebo_magnet:$GAZEBO_PLUGIN_PATH
+export GAZEBO_PLUGIN_PATH=$HOME/catkin_ws/build/storm_gazebo_magnet:$GAZEBO_PLUGIN_PATH
 ```
 2. source ~/.bashrc
 
