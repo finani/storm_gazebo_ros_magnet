@@ -222,13 +222,34 @@ void DipoleMagnet::OnUpdate(const common::UpdateInfo & /*_info*/) {
       math::Vector3d torque_tmp;
       GetForceTorque(p_self, moment_world, p_other, m_other, force_tmp, torque_tmp);
 
-      force += force_tmp;
-      torque += torque_tmp;
-
       math::Vector3d mfs_tmp;
       GetMFS(p_self, p_other, m_other, mfs_tmp);
-
-      mfs += mfs_tmp;
+      
+      if (this->should_publish) {
+        if (this->magnet_cmd) {
+          force += force_tmp;
+          torque += torque_tmp;
+          mfs += mfs_tmp;
+          // torque = 0;
+          // mfs = 0;
+        }
+        else {
+          force = 0;
+          torque = 0;
+          mfs = 0;
+          // force -= force_tmp /10.0;
+          // torque -= torque_tmp /10.0;
+          // mfs -= mfs_tmp /10.0;
+        }
+      }
+      else {
+        force += force_tmp;
+        torque += torque_tmp;
+        mfs += mfs_tmp;
+        // force = 0;
+        // torque = 0;
+        // mfs = 0;
+      }
 
       this->link->AddForce(force_tmp);
       this->link->AddTorque(torque_tmp);
@@ -298,13 +319,12 @@ void DipoleMagnet::GetForceTorque(const math::Pose3d& p_self,
 
   double Ktorque = 1e-7 / pow(p.Length(), 3);
   math::Vector3d B1 = Ktorque * (3 * (m1.Dot(p_unit)) * p_unit - m1);
-  if (this->magnet_cmd) {
-    force = K *
-        (m2 * (m1.Dot(p_unit)) + m1 * (m2.Dot(p_unit)) + p_unit * (m1.Dot(m2)) -
-         5 * p_unit * (m1.Dot(p_unit)) * (m2.Dot(p_unit)));
 
-    torque = m2.Cross(B1);
-  }
+  force = K *
+      (m2 * (m1.Dot(p_unit)) + m1 * (m2.Dot(p_unit)) + p_unit * (m1.Dot(m2)) -
+        5 * p_unit * (m1.Dot(p_unit)) * (m2.Dot(p_unit)));
+  torque = m2.Cross(B1);
+
   if (this->debug) {
     std::cout << std::setprecision(3);
     std::cout << "p: " << p << "\tm1: " << m1 << "\tm2: " << m2 << std::endl;
@@ -318,23 +338,21 @@ void DipoleMagnet::GetMFS(const math::Pose3d& p_self,
                           const math::Pose3d& p_other,
                           const math::Vector3d& m_other,
                           math::Vector3d& mfs) {
-  if (this->magnet_cmd) {
-    // sensor location
-    math::Vector3d p = p_self.Pos() - p_other.Pos();
-    math::Vector3d p_unit = p / p.Length();
+  // sensor location
+  math::Vector3d p = p_self.Pos() - p_other.Pos();
+  math::Vector3d p_unit = p / p.Length();
 
-    // Get the field at the sensor location
-    double K = 1e-7 / pow(p.Length(), 3);
-    math::Vector3d B = K * (3 * (m_other.Dot(p_unit)) * p_unit - m_other);
+  // Get the field at the sensor location
+  double K = 1e-7 / pow(p.Length(), 3);
+  math::Vector3d B = K * (3 * (m_other.Dot(p_unit)) * p_unit - m_other);
 
-    // Rotate the B vector into the capsule/body frame
-    math::Vector3d B_body = p_self.Rot().RotateVectorReverse(B);
+  // Rotate the B vector into the capsule/body frame
+  math::Vector3d B_body = p_self.Rot().RotateVectorReverse(B);
 
-    // Assign vector
-    mfs.X() = B_body[0];
-    mfs.Y() = B_body[1];
-    mfs.Z() = B_body[2];
-  }
+  // Assign vector
+  mfs.X() = B_body[0];
+  mfs.Y() = B_body[1];
+  mfs.Z() = B_body[2];
 }
 
 void DipoleMagnet::Magnet_CB(const std_msgs::Bool& msg) {
