@@ -234,6 +234,8 @@ void DipoleMagnet::OnUpdate(const common::UpdateInfo & /*_info*/) {
           // mfs = 0;
         }
         else {
+          force_tmp = 0;
+          torque_tmp = 0;
           force = 0;
           torque = 0;
           mfs = 0;
@@ -243,12 +245,14 @@ void DipoleMagnet::OnUpdate(const common::UpdateInfo & /*_info*/) {
         }
       }
       else {
-        force += force_tmp;
-        torque += torque_tmp;
-        mfs += mfs_tmp;
-        // force = 0;
-        // torque = 0;
-        // mfs = 0;
+        force_tmp = 0;
+        torque_tmp = 0;
+        // force += force_tmp;
+        // torque += torque_tmp;
+        // mfs += mfs_tmp;
+        force = 0;
+        torque = 0;
+        mfs = 0;
       }
 
       this->link->AddForce(force_tmp);
