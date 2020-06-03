@@ -95,15 +95,13 @@
       </link>
       <plugin name="dipole_magnet" filename="libstorm_gazebo_dipole_magnet.so">
         <bodyName>magnet</bodyName>
-        <dipole_moment>0 0 1000</dipole_moment>
-        <xyzOffset>0 0 0</xyzOffset>
-        <rpyOffset>0 0 0</rpyOffset>
-        <xyzLimit>0 0 0.1</xyzLimit>
-        <debug>false</debug>
+        <dipole_moment>0 0 1</dipole_moment>
+        <xyzOffset>0 0 0.2</xyzOffset>
+        <xyzRange>0.5 0.5 10.0</xyzRange>
+        <debug>true</debug>
         <!-- Set to false if not using ROS -->
-        <shouldPublish>true</shouldPublish> <!-- electro-magnet -->
+        <controllable>true</controllable> <!-- electro-magnet -->
         <topicNs>magnet_weebee</topicNs>
-        <updateRate>100</updateRate>
       </plugin>
     </model>        
 
@@ -111,7 +109,7 @@
       <pose>0.08 0 1.025 0 0 0</pose>
       <link name="magnet">
         <inertial>
-          <mass>0.01</mass>
+          <mass>1.0</mass>
           <inertia>
             <ixx>1.8e-7</ixx>
             <ixy>0</ixy>
@@ -142,10 +140,8 @@
       <plugin name="dipole_magnet" filename="libstorm_gazebo_dipole_magnet.so">
           <bodyName>magnet</bodyName>
           <dipole_moment>0 0 1</dipole_moment>
-          <xyzOffset>0 0 0</xyzOffset>
-          <rpyOffset>0 0 0</rpyOffset>
           <debug>false</debug>
-          <shouldPublish>false</shouldPublish>
+          <control>false</control>
       </plugin>
     </model>
 

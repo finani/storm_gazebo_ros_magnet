@@ -41,11 +41,13 @@ class DipoleMagnetContainer {
 
   struct Magnet {
     bool calculate;
-    bool should_publish;
+    bool controllable;
     bool magnet_cmd;
+    double mass;
     math::Vector3d moment;
     math::Pose3d offset;
     math::Pose3d pose;
+    math::Pose3d range;
     std::uint32_t model_id;
   };
 

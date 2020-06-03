@@ -39,7 +39,7 @@ DipoleMagnet::DipoleMagnet(): ModelPlugin() {
 
 DipoleMagnet::~DipoleMagnet() {
   this->update_connection.reset();
-  if (this->mag->should_publish) {
+  if (this->mag->controllable) {
     this->queue.clear();
     this->queue.disable();
     this->rosnode->shutdown();
@@ -77,20 +77,20 @@ void DipoleMagnet::Load(physics::ModelPtr _parent, sdf::ElementPtr _sdf) {
     return;
   }
 
-  this->mag->should_publish = false;
-  if (_sdf->HasElement("shouldPublish"))
-  {
-    this->mag->should_publish = _sdf->GetElement("shouldPublish")->Get<bool>();
+  this->inertial = this->link->GetInertial();
+  if(!this->inertial){
+    gzerr << "Error: inertial of the link named " << this->link_name << " does not loaded" << std::endl;
+    return;
+  }
+  else {
+    this->mag->mass = this->inertial->Mass();
   }
 
-  if (!_sdf->HasElement("updateRate"))
+  this->mag->controllable = false;
+  if (_sdf->HasElement("controllable"))
   {
-    gzmsg << "DipoleMagnet plugin missing <updateRate>, defaults to 0.0"
-        " (as fast as possible)" << std::endl;
-    this->update_rate = 0;
+    this->mag->controllable = _sdf->GetElement("controllable")->Get<bool>();
   }
-  else
-    this->update_rate = _sdf->GetElement("updateRate")->Get<double>();
 
   if (_sdf->HasElement("calculate")){
     this->mag->calculate = _sdf->Get<bool>("calculate");
@@ -105,12 +105,11 @@ void DipoleMagnet::Load(physics::ModelPtr _parent, sdf::ElementPtr _sdf) {
     this->mag->offset.Pos() = _sdf->Get<math::Vector3d>("xyzOffset");
   }
 
-  if (_sdf->HasElement("rpyOffset")){
-    math::Vector3d rpy_offset = _sdf->Get<math::Vector3d>("rpyOffset");
-    this->mag->offset.Rot() = math::Quaternion<double>(rpy_offset);
+  if (_sdf->HasElement("xyzRange")){
+    this->mag->range.Pos() = _sdf->Get<math::Vector3d>("xyzRange");
   }
 
-  if (this->mag->should_publish) {
+  if (this->mag->controllable) {
     if (!_sdf->HasElement("topicNs"))
     {
       gzmsg << "DipoleMagnet plugin missing <topicNs>," 
@@ -132,14 +131,6 @@ void DipoleMagnet::Load(physics::ModelPtr _parent, sdf::ElementPtr _sdf) {
     this->rosnode = new ros::NodeHandle(this->robot_namespace);
     this->rosnode->setCallbackQueue(&this->queue);
 
-    this->wrench_pub = this->rosnode->advertise<geometry_msgs::WrenchStamped>(
-        this->topic_ns + "/wrench", 1,
-        boost::bind( &DipoleMagnet::Connect,this),
-        boost::bind( &DipoleMagnet::Disconnect,this), ros::VoidPtr(), &this->queue);
-    this->mfs_pub = this->rosnode->advertise<sensor_msgs::MagneticField>(
-        this->topic_ns + "/mfs", 1,
-        boost::bind( &DipoleMagnet::Connect,this),
-        boost::bind( &DipoleMagnet::Disconnect,this), ros::VoidPtr(), &this->queue);
     this->magnet_sub = this->rosnode->subscribe(
         this->topic_ns + "/cmd", 1, &DipoleMagnet::Magnet_CB, this);
 
@@ -186,9 +177,7 @@ void DipoleMagnet::OnUpdate(const common::UpdateInfo & /*_info*/) {
 
   // Calculate the force from all other magnets
   math::Pose3d p_self = this->link->WorldPose();
-  p_self.Pos() += -p_self.Rot().RotateVector(this->mag->offset.Pos());
-  p_self.Rot() *= this->mag->offset.Rot().Inverse();
-
+  math::Vector3d v_self = this->link->WorldCoGLinearVel();
   this->mag->pose = p_self;
 
   if (!this->mag->calculate)
@@ -196,143 +185,53 @@ void DipoleMagnet::OnUpdate(const common::UpdateInfo & /*_info*/) {
 
   DipoleMagnetContainer& dp = DipoleMagnetContainer::Get();
 
-  math::Vector3d moment_world = p_self.Rot().RotateVector(this->mag->moment);
+  math::Vector3d m_self = p_self.Rot().RotateVector(this->mag->moment);
+  double mass_self = this->mag->mass;
 
   math::Vector3d force(0, 0, 0);
-  math::Vector3d torque(0, 0, 0);
-  math::Vector3d mfs(0, 0, 0);
   for(DipoleMagnetContainer::MagnetPtrV::iterator it = dp.magnets.begin(); it < dp.magnets.end(); it++){
     std::shared_ptr<DipoleMagnetContainer::Magnet> mag_other = *it;
-    if (mag_other->model_id != this->mag->model_id) {
+    if (mag_other->model_id != this->mag->model_id && !this->mag->controllable && mag_other->controllable) {
       math::Pose3d p_other = mag_other->pose;
       math::Vector3d m_other = p_other.Rot().RotateVector(mag_other->moment);
+      math::Pose3d offset_other = mag_other->offset;
+      math::Pose3d range_other = mag_other->range;
+      double mass_other = mag_other->mass;
 
-      math::Vector3d force_tmp;
-      math::Vector3d torque_tmp;
-      GetForceTorque(p_self, moment_world, p_other, m_other, force_tmp, torque_tmp);
+      math::Vector3d v_cmd(0, 0, 0);
+      math::Vector3d torque(0, 0, 0);
 
-      math::Vector3d mfs_tmp;
-      GetMFS(p_self, p_other, m_other, mfs_tmp);
-      
-      if (this->mag->magnet_cmd) {
-        force += force_tmp;
-        torque += torque_tmp;
-        mfs += mfs_tmp;
+      math::Vector3d p = p_self.Pos() + offset_other.Pos() - p_other.Pos();
+      math::Vector3d m = m_self - m_other;
+
+      // velocity, torque are only working on the magnet with no shouldPublish
+      if (mag_other->magnet_cmd && std::abs(p.X()) < range_other.Pos().X() && std::abs(p.Y()) < range_other.Pos().Y() && std::abs(p.Z()) < range_other.Pos().Z()) {
+        v_cmd = 1 * (1 * -p);
+        // force = 1 * (v_cmd - v_self);
+        force.Z() = 10.0;
+        torque = 0.1 * (1 * -m);
       }
       else {
         force = 0;
         torque = 0;
-        mfs = 0;
       }
+      this->link->AddForce(force);
+      // this->link->SetLinearVel(v_cmd);
+      this->link->AddTorque(torque);
 
-      if (!mag_other->should_publish || !mag_other->magnet_cmd) { // force, torque, mfs is only working on the magnet with no shouldPublish
-        force_tmp = 0;
-        torque_tmp = 0;
-        mfs_tmp = 0;
-      }
-
-      this->link->AddForce(force_tmp);
-      this->link->AddTorque(torque_tmp);
-
-      if (this->debug)
-        std::cout << "magnet_msg: " << (this->mag->magnet_cmd ? "true" : "false")
-                  << std::endl
+      if (this->debug) {
+        std::cout << std::setprecision(3);
+        std::cout << "magnet_msg: " << (this->mag->magnet_cmd ? "true" : "false") << std::endl;
+        std::cout << "mass_self: " << mass_self << std::endl;
+        std::cout << "mass_other: " << mass_other << std::endl;
+        std::cout << "vel_cmd: " << v_cmd << std::endl;
+        std::cout << "velocity: " << v_self << std::endl;
+        std::cout << "force: " << force << std::endl;
+        std::cout << "torque: " << torque << std::endl
                   << std::endl;
+      }
     }
   }
-
-  this->PublishData(force, torque, mfs);
-}
-
-void DipoleMagnet::PublishData(const math::Vector3d& force,
-                               const math::Vector3d& torque,
-                               const math::Vector3d& mfs) {
-  if(this->mag->should_publish && this->connect_count > 0) {
-    // Rate control
-    common::Time cur_time = this->world->SimTime();
-    if (this->update_rate > 0 &&
-        (cur_time-this->last_time).Double() < (1.0/this->update_rate))
-      return;
-
-    this->lock.lock();
-    // copy data into wrench message
-    this->wrench_msg.header.frame_id = "world";
-    this->wrench_msg.header.stamp.sec = cur_time.sec;
-    this->wrench_msg.header.stamp.nsec = cur_time.nsec;
-
-    this->wrench_msg.wrench.force.x = force.X();
-    this->wrench_msg.wrench.force.y = force.Y();
-    this->wrench_msg.wrench.force.z = force.Z();
-    this->wrench_msg.wrench.torque.x = torque.X();
-    this->wrench_msg.wrench.torque.y = torque.Y();
-    this->wrench_msg.wrench.torque.z = torque.Z();
-
-    // now mfs
-    this->mfs_msg.header.frame_id = this->link_name;
-    this->mfs_msg.header.stamp.sec = cur_time.sec;
-    this->mfs_msg.header.stamp.nsec = cur_time.nsec;
-
-    this->mfs_msg.magnetic_field.x = mfs.X();
-    this->mfs_msg.magnetic_field.y = mfs.Y();
-    this->mfs_msg.magnetic_field.z = mfs.Z();
-
-    this->wrench_pub.publish(this->wrench_msg);
-    this->mfs_pub.publish(this->mfs_msg);
-
-    this->lock.unlock();
-  }
-}
-
-void DipoleMagnet::GetForceTorque(const math::Pose3d& p_self,
-                                  const math::Vector3d& m_self,
-                                  const math::Pose3d& p_other,
-                                  const math::Vector3d& m_other,
-                                  math::Vector3d& force,
-                                  math::Vector3d& torque) {
-  math::Vector3d p = p_self.Pos() - p_other.Pos();
-  math::Vector3d p_unit = p / p.Length();
-
-  math::Vector3d m1 = m_other;
-  math::Vector3d m2 = m_self;
-
-  double K = 3.0 * 1e-7 / pow(p.Length(), 4);
-
-  double Ktorque = 1e-7 / pow(p.Length(), 3);
-  math::Vector3d B1 = Ktorque * (3 * (m1.Dot(p_unit)) * p_unit - m1);
-
-  force = K *
-      (m2 * (m1.Dot(p_unit)) + m1 * (m2.Dot(p_unit)) + p_unit * (m1.Dot(m2)) -
-        5 * p_unit * (m1.Dot(p_unit)) * (m2.Dot(p_unit)));
-  torque = m2.Cross(B1);
-
-  if (this->debug) {
-    std::cout << std::setprecision(3);
-    std::cout << "p: " << p << "\tm1: " << m1 << "\tm2: " << m2 << std::endl;
-    std::cout << "B: " << B1 << "\tK: " << Ktorque << std::endl;
-    std::cout << "force: " << force << std::endl;
-    std::cout << "torque: " << torque << std::endl << std::endl;
-  }
-}
-
-void DipoleMagnet::GetMFS(const math::Pose3d& p_self,
-                          const math::Pose3d& p_other,
-                          const math::Vector3d& m_other,
-                          math::Vector3d& mfs) {
-  // sensor location
-  math::Vector3d p = p_self.Pos() - p_other.Pos();
-  math::Vector3d p_unit = p / p.Length();
-
-  // Get the field at the sensor location
-  double K = 1e-7 / pow(p.Length(), 3);
-  math::Vector3d B = K * (3 * (m_other.Dot(p_unit)) * p_unit - m_other);
-
-  // Rotate the B vector into the capsule/body frame
-  math::Vector3d B_body = p_self.Rot().RotateVectorReverse(B);
-
-  // Assign vector
-  mfs.X() = B_body[0];
-  mfs.Y() = B_body[1];
-  mfs.Z() = B_body[2];
 }
 
 void DipoleMagnet::Magnet_CB(const std_msgs::Bool& msg) {

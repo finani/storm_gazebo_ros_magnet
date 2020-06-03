@@ -57,37 +57,6 @@ class DipoleMagnet : public ModelPlugin {
   void OnUpdate(const common::UpdateInfo & /*_info*/);
 
 
-  /// \brief Publishes data to ros topics
-  /// \pram[in] force A vector of force that makes up the wrench to be published
-  /// \pram[in] torque A vector of torque that makes up the wrench to be published
-  /// \pram[in] mfs A vector of magnetic field data
-  void PublishData(const math::Vector3d& force,
-                   const math::Vector3d& torque,
-                   const math::Vector3d& mfs);
-
-  /// \brief Calculate force and torque of a magnet on another
-  /// \parama[in] p_self Pose of the first magnet
-  /// \parama[in] m_self Dipole moment of the first magnet
-  /// \parama[in] p_other Pose of the second magnet
-  /// \parama[in] m_other Dipole moment of the second magnet on which the force is calculated
-  /// \param[out] force Calculated force vector
-  /// \param[out] torque Calculated torque vector
-  void GetForceTorque(const math::Pose3d& p_self,
-                      const math::Vector3d& m_self,
-                      const math::Pose3d& p_other,
-                      const math::Vector3d& m_other,
-                      math::Vector3d& force,
-                      math::Vector3d& torque);
-
-  /// \brief Calculate the magnetic field on all 6 sensors
-  /// \parama[in] p_self Pose of the first magnet
-  /// \parama[in] p_other Pose of the second magnet
-  /// \parama[in] m_other Dipole moment of the second magnet
-  /// \param[out] mfs magnetic field sensors
-  void GetMFS(const math::Pose3d& p_self,
-              const math::Pose3d& p_other,
-              const math::Vector3d& m_other,
-              math::Vector3d& mfs);
 
   void Magnet_CB(const std_msgs::Bool& msg);
 
@@ -95,6 +64,7 @@ class DipoleMagnet : public ModelPlugin {
  private:
   physics::ModelPtr model;
   physics::LinkPtr link;
+  physics::InertialPtr inertial;
   physics::WorldPtr world;
 
   std::shared_ptr<DipoleMagnetContainer::Magnet> mag;
@@ -105,12 +75,9 @@ class DipoleMagnet : public ModelPlugin {
 
   bool debug;
   ros::NodeHandle* rosnode;
-  ros::Publisher wrench_pub;
-  ros::Publisher mfs_pub;
   ros::Subscriber magnet_sub;
 
   geometry_msgs::WrenchStamped wrench_msg;
-  sensor_msgs::MagneticField mfs_msg;
 
   private: boost::mutex lock;
   int connect_count;
@@ -119,8 +86,6 @@ class DipoleMagnet : public ModelPlugin {
   ros::CallbackQueue queue;
   boost::thread callback_queue_thread;
 
-  common::Time last_time;
-  double update_rate;
   // Pointer to the update event connection
   event::ConnectionPtr update_connection;
 };
