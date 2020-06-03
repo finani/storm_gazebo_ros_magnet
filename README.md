@@ -1,5 +1,11 @@
 ## Add compatibility with gazebo9 and change it to an capture module
 > gazebo9 branch by finani
+- The default branch is 'capture' which is capturing something with the capture module.
+- The 'gazebo' branch is simulating dipole magnet in gazebo9, but it is unstable because of the magnet model.
+- I recommend using 'capture' branch.
+
+#
+
 1. gedit ~/.bashrc
 ```
 export GAZEBO_PLUGIN_PATH=$HOME/catkin_ws/build/storm_gazebo_magnet:$GAZEBO_PLUGIN_PATH
