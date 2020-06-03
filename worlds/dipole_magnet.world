@@ -98,7 +98,6 @@
         <dipole_moment>0 0 1000</dipole_moment>
         <xyzOffset>0 0 0</xyzOffset>
         <rpyOffset>0 0 0</rpyOffset>
-        <xyzLimit>0 0 0.1</xyzLimit>
         <debug>false</debug>
         <!-- Set to false if not using ROS -->
         <shouldPublish>true</shouldPublish> <!-- electro-magnet -->
