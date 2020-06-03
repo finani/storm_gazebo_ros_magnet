@@ -103,9 +103,7 @@ class DipoleMagnet : public ModelPlugin {
   std::string robot_namespace;
   std::string topic_ns;
 
-  bool should_publish;
   bool debug;
-  bool magnet_cmd;
   ros::NodeHandle* rosnode;
   ros::Publisher wrench_pub;
   ros::Publisher mfs_pub;

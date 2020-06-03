@@ -39,7 +39,7 @@ DipoleMagnet::DipoleMagnet(): ModelPlugin() {
 
 DipoleMagnet::~DipoleMagnet() {
   this->update_connection.reset();
-  if (this->should_publish) {
+  if (this->mag->should_publish) {
     this->queue.clear();
     this->queue.disable();
     this->rosnode->shutdown();
@@ -77,10 +77,10 @@ void DipoleMagnet::Load(physics::ModelPtr _parent, sdf::ElementPtr _sdf) {
     return;
   }
 
-  this->should_publish = false;
+  this->mag->should_publish = false;
   if (_sdf->HasElement("shouldPublish"))
   {
-    this->should_publish = _sdf->GetElement("shouldPublish")->Get<bool>();
+    this->mag->should_publish = _sdf->GetElement("shouldPublish")->Get<bool>();
   }
 
   if (!_sdf->HasElement("updateRate"))
@@ -110,7 +110,7 @@ void DipoleMagnet::Load(physics::ModelPtr _parent, sdf::ElementPtr _sdf) {
     this->mag->offset.Rot() = math::Quaternion<double>(rpy_offset);
   }
 
-  if (this->should_publish) {
+  if (this->mag->should_publish) {
     if (!_sdf->HasElement("topicNs"))
     {
       gzmsg << "DipoleMagnet plugin missing <topicNs>," 
@@ -140,17 +140,6 @@ void DipoleMagnet::Load(physics::ModelPtr _parent, sdf::ElementPtr _sdf) {
         this->topic_ns + "/mfs", 1,
         boost::bind( &DipoleMagnet::Connect,this),
         boost::bind( &DipoleMagnet::Disconnect,this), ros::VoidPtr(), &this->queue);
-
-    // ros::SubscribeOptions so =
-    //     ros::SubscribeOptions::create<std_msgs::Bool>(
-    //     this->topic_ns + "/cmd", 1,
-    //     boost::bind(&DipoleMagnet::Magnet_CB, this, _1),
-    //     ros::VoidPtr(), &this->queue);
-    // this->magnet_sub = this->rosnode->subscribe(so);
-    // this->magnet_sub = this->rosnode->subscribe<std_msgs::Bool>(
-    //     this->topic_ns + "/cmd", 1,
-    //     boost::bind( &DipoleMagnet::Magnet_CB,this), ros::VoidPtr(),
-    //     &this->queue);
     this->magnet_sub = this->rosnode->subscribe(
         this->topic_ns + "/cmd", 1, &DipoleMagnet::Magnet_CB, this);
 
@@ -225,41 +214,28 @@ void DipoleMagnet::OnUpdate(const common::UpdateInfo & /*_info*/) {
       math::Vector3d mfs_tmp;
       GetMFS(p_self, p_other, m_other, mfs_tmp);
       
-      if (this->should_publish) {
-        if (this->magnet_cmd) {
-          force += force_tmp;
-          torque += torque_tmp;
-          mfs += mfs_tmp;
-          // torque = 0;
-          // mfs = 0;
-        }
-        else {
-          force_tmp = 0;
-          torque_tmp = 0;
-          force = 0;
-          torque = 0;
-          mfs = 0;
-          // force -= force_tmp /10.0;
-          // torque -= torque_tmp /10.0;
-          // mfs -= mfs_tmp /10.0;
-        }
+      if (this->mag->magnet_cmd) {
+        force += force_tmp;
+        torque += torque_tmp;
+        mfs += mfs_tmp;
       }
       else {
-        force_tmp = 0;
-        torque_tmp = 0;
-        // force += force_tmp;
-        // torque += torque_tmp;
-        // mfs += mfs_tmp;
         force = 0;
         torque = 0;
         mfs = 0;
+      }
+
+      if (!mag_other->should_publish || !mag_other->magnet_cmd) { // force, torque, mfs is only working on the magnet with no shouldPublish
+        force_tmp = 0;
+        torque_tmp = 0;
+        mfs_tmp = 0;
       }
 
       this->link->AddForce(force_tmp);
       this->link->AddTorque(torque_tmp);
 
       if (this->debug)
-        std::cout << "magnet_msg: " << (this->magnet_cmd ? "true" : "false")
+        std::cout << "magnet_msg: " << (this->mag->magnet_cmd ? "true" : "false")
                   << std::endl
                   << std::endl;
     }
@@ -271,7 +247,7 @@ void DipoleMagnet::OnUpdate(const common::UpdateInfo & /*_info*/) {
 void DipoleMagnet::PublishData(const math::Vector3d& force,
                                const math::Vector3d& torque,
                                const math::Vector3d& mfs) {
-  if(this->should_publish && this->connect_count > 0) {
+  if(this->mag->should_publish && this->connect_count > 0) {
     // Rate control
     common::Time cur_time = this->world->SimTime();
     if (this->update_rate > 0 &&
@@ -360,7 +336,7 @@ void DipoleMagnet::GetMFS(const math::Pose3d& p_self,
 }
 
 void DipoleMagnet::Magnet_CB(const std_msgs::Bool& msg) {
-  this->magnet_cmd = msg.data;
+  this->mag->magnet_cmd = msg.data;
 }
 
 // Register this plugin with the simulator

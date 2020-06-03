@@ -41,6 +41,8 @@ class DipoleMagnetContainer {
 
   struct Magnet {
     bool calculate;
+    bool should_publish;
+    bool magnet_cmd;
     math::Vector3d moment;
     math::Pose3d offset;
     math::Pose3d pose;

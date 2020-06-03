@@ -12,7 +12,7 @@
     </include>
 
     <model name="plane">
-      <pose>0 0 0.9 0 0 0</pose>
+      <pose>0 0 1.0 0 0 0</pose>
       <static>true</static>
       <link name="link">
         <collision name="collision">
@@ -38,7 +38,7 @@
     </model>
 
     <model name="plane2">
-      <pose>0 0 0.975 0 0 0</pose>
+      <pose>0 0 1.3 0 0 0</pose>
       <static>true</static>
       <link name="link">
         <collision name="collision">
@@ -64,7 +64,7 @@
     </model>
 
     <model name="actuator_magnet">
-      <pose>0 0 1.05 0 0 0</pose>
+      <pose>0 0 1.375 0 0 0</pose>
       <static>true</static>
       <link name="magnet">
         <inertial>
@@ -94,17 +94,21 @@
         </visual>
       </link>
       <plugin name="dipole_magnet" filename="libstorm_gazebo_dipole_magnet.so">
-          <bodyName>magnet</bodyName>
-          <dipole_moment>0 0 970</dipole_moment>
-          <xyzOffset>0 0 0</xyzOffset>
-          <rpyOffset>0 0 0</rpyOffset>
-          <shouldPublish>false</shouldPublish>
-          <debug>false</debug>
+        <bodyName>magnet</bodyName>
+        <dipole_moment>0 0 1000</dipole_moment>
+        <xyzOffset>0 0 0</xyzOffset>
+        <rpyOffset>0 0 0</rpyOffset>
+        <xyzLimit>0 0 0.1</xyzLimit>
+        <debug>false</debug>
+        <!-- Set to false if not using ROS -->
+        <shouldPublish>true</shouldPublish> <!-- electro-magnet -->
+        <topicNs>magnet_weebee</topicNs>
+        <updateRate>100</updateRate>
       </plugin>
     </model>        
 
     <model name="capsule_magnet">
-      <pose>0.08 0 0.925 0 0 0</pose>
+      <pose>0.08 0 1.025 0 0 0</pose>
       <link name="magnet">
         <inertial>
           <mass>0.01</mass>
@@ -135,17 +139,13 @@
           </geometry>
         </visual>
       </link>
-
       <plugin name="dipole_magnet" filename="libstorm_gazebo_dipole_magnet.so">
-        <bodyName>magnet</bodyName>
-        <dipole_moment>0 0 1.26</dipole_moment>
-        <xyzOffset>0 0 0</xyzOffset>
-        <rpyOffset>0 0 0</rpyOffset>
-        <debug>false</debug>
-        <!-- Set to false if not using ROS -->
-        <shouldPublish>true</shouldPublish>
-        <topicNs>magnet_weebee</topicNs>
-        <updateRate>100</updateRate>
+          <bodyName>magnet</bodyName>
+          <dipole_moment>0 0 1</dipole_moment>
+          <xyzOffset>0 0 0</xyzOffset>
+          <rpyOffset>0 0 0</rpyOffset>
+          <debug>false</debug>
+          <shouldPublish>false</shouldPublish>
       </plugin>
     </model>
 
