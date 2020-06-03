@@ -101,7 +101,7 @@
         <xyzVelLimit>5 5 10</xyzVelLimit>
         <debug>false</debug>
         <!-- Set to false if not using ROS -->
-        <controllable>true</controllable> <!-- electro-magnet -->
+        <controllable>true</controllable>
         <topicNs>magnet_weebee</topicNs>
       </plugin>
     </model>
