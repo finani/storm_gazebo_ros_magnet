@@ -97,16 +97,16 @@ void DipoleMagnet::Load(physics::ModelPtr _parent, sdf::ElementPtr _sdf) {
   } else
     this->mag->calculate = true;
 
-  if (_sdf->HasElement("dipole_moment")){
-    this->mag->moment = _sdf->Get<math::Vector3d>("dipole_moment");
-  }
-
   if (_sdf->HasElement("xyzOffset")){
     this->mag->offset.Pos() = _sdf->Get<math::Vector3d>("xyzOffset");
   }
 
   if (_sdf->HasElement("xyzRange")){
     this->mag->range.Pos() = _sdf->Get<math::Vector3d>("xyzRange");
+  }
+
+  if (_sdf->HasElement("xyzVelLimit")){
+    this->mag->vel_limit.Pos() = _sdf->Get<math::Vector3d>("xyzVelLimit");
   }
 
   if (this->mag->controllable) {
@@ -175,63 +175,92 @@ void DipoleMagnet::QueueThread() {
 // Called by the world update start event
 void DipoleMagnet::OnUpdate(const common::UpdateInfo & /*_info*/) {
 
-  // Calculate the force from all other magnets
-  math::Pose3d p_self = this->link->WorldPose();
-  math::Vector3d v_self = this->link->WorldCoGLinearVel();
-  this->mag->pose = p_self;
-
   if (!this->mag->calculate)
     return;
 
-  DipoleMagnetContainer& dp = DipoleMagnetContainer::Get();
-
-  math::Vector3d m_self = p_self.Rot().RotateVector(this->mag->moment);
+  // Calculate the force from all other magnets
+  math::Pose3d p_self = this->link->WorldPose();
+  this->mag->pose = p_self;
   double mass_self = this->mag->mass;
 
-  math::Vector3d force(0, 0, 0);
+  DipoleMagnetContainer& dp = DipoleMagnetContainer::Get();
+
   for(DipoleMagnetContainer::MagnetPtrV::iterator it = dp.magnets.begin(); it < dp.magnets.end(); it++){
     std::shared_ptr<DipoleMagnetContainer::Magnet> mag_other = *it;
     if (mag_other->model_id != this->mag->model_id && !this->mag->controllable && mag_other->controllable) {
       math::Pose3d p_other = mag_other->pose;
-      math::Vector3d m_other = p_other.Rot().RotateVector(mag_other->moment);
       math::Pose3d offset_other = mag_other->offset;
       math::Pose3d range_other = mag_other->range;
       double mass_other = mag_other->mass;
 
+      math::Vector3d v_self = this->link->WorldLinearVel();
       math::Vector3d v_cmd(0, 0, 0);
+      math::Vector3d force(0, 0, 0);
+      math::Vector3d w_self = this->link->WorldAngularVel();
+      math::Vector3d w_cmd(0, 0, 0);
       math::Vector3d torque(0, 0, 0);
 
-      math::Vector3d p = p_self.Pos() + offset_other.Pos() - p_other.Pos();
-      math::Vector3d m = m_self - m_other;
+      math::Vector3d p_err = p_self.Pos() + p_other.Rot().RotateVector(offset_other.Pos()) - p_other.Pos();
+      math::Vector3d p_err_inv = p_other.Rot().Inverse().RotateVector(p_err);
+      math::Vector3d e_err = (p_self.Rot() * p_other.Rot().Inverse()).Euler();
+      
+      // velocity, torque are only working on the magnet with no controllable
+      if (mag_other->magnet_cmd
+          && std::abs(p_err_inv.X()) < range_other.Pos().X()
+          && std::abs(p_err_inv.Y()) < range_other.Pos().Y()
+          && std::abs(p_err_inv.Z()) < range_other.Pos().Z()) {
+        v_cmd = 10 * -p_err;
+        this->LimitVelocity(v_cmd, mag_other->vel_limit.Pos());
+        force = 1000 * (v_cmd - v_self);
+        force.Z() += mass_self * 9.8;
 
-      // velocity, torque are only working on the magnet with no shouldPublish
-      if (mag_other->magnet_cmd && std::abs(p.X()) < range_other.Pos().X() && std::abs(p.Y()) < range_other.Pos().Y() && std::abs(p.Z()) < range_other.Pos().Z()) {
-        v_cmd = 1 * (1 * -p);
-        // force = 1 * (v_cmd - v_self);
-        force.Z() = 10.0;
-        torque = 0.1 * (1 * -m);
+        w_cmd = 10 * -e_err;
+        torque = 0.00001 * (w_cmd - w_self);
       }
       else {
         force = 0;
         torque = 0;
       }
       this->link->AddForce(force);
-      // this->link->SetLinearVel(v_cmd);
       this->link->AddTorque(torque);
 
       if (this->debug) {
+        system("clear");
         std::cout << std::setprecision(3);
-        std::cout << "magnet_msg: " << (this->mag->magnet_cmd ? "true" : "false") << std::endl;
-        std::cout << "mass_self: " << mass_self << std::endl;
-        std::cout << "mass_other: " << mass_other << std::endl;
-        std::cout << "vel_cmd: " << v_cmd << std::endl;
-        std::cout << "velocity: " << v_self << std::endl;
-        std::cout << "force: " << force << std::endl;
-        std::cout << "torque: " << torque << std::endl
+        std::cout << "[magnet_msg] \t" << (this->mag->magnet_cmd ? "true" : "false") << std::endl;
+        std::cout << "[mass_self] \t" << mass_self << std::endl;
+        std::cout << "[mass_other] \t" << mass_other << std::endl;
+        std::cout << "[position] \t" << p_self << std::endl;
+        std::cout << "[vel_cmd] \t" << v_cmd << std::endl;
+        std::cout << "[velocity] \t" << v_self << std::endl;
+        std::cout << "[euler_self] \t" << p_self.Rot().Euler() << std::endl;
+        std::cout << "[euler_other] \t" << p_other.Rot().Euler() << std::endl;
+        std::cout << "[w_cmd] \t" << w_cmd << std::endl;
+        std::cout << "[Ang. Vel.] \t" << w_self << std::endl;
+        std::cout << "[force] \t" << force << std::endl;
+        std::cout << "[torque] \t" << torque << std::endl
                   << std::endl;
       }
     }
   }
+}
+
+void DipoleMagnet::LimitVelocity(math::Vector3d& v_cmd,
+                                 math::Vector3d& v_limit) {
+  if (v_cmd.X() > v_limit.X())
+    v_cmd.X() = v_limit.X();
+  if (v_cmd.X() < -v_limit.X())
+    v_cmd.X() = -v_limit.X();
+
+  if (v_cmd.Y() > v_limit.Y())
+    v_cmd.Y() = v_limit.Y();
+  if (v_cmd.Y() < -v_limit.Y())
+    v_cmd.Y() = -v_limit.Y();
+
+  if (v_cmd.Z() > v_limit.Z())
+    v_cmd.Z() = v_limit.Z();
+  if (v_cmd.Z() < -v_limit.Z())
+    v_cmd.Z() = -v_limit.Z();
 }
 
 void DipoleMagnet::Magnet_CB(const std_msgs::Bool& msg) {

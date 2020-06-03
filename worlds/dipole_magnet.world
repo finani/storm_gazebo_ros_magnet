@@ -95,10 +95,10 @@
       </link>
       <plugin name="dipole_magnet" filename="libstorm_gazebo_dipole_magnet.so">
         <bodyName>magnet</bodyName>
-        <dipole_moment>0 0 1</dipole_moment>
         <xyzOffset>0 0 0.2</xyzOffset>
         <xyzRange>0.5 0.5 10.0</xyzRange>
-        <debug>true</debug>
+        <xyzVelLimit>5 5 10</xyzVelLimit>
+        <debug>false</debug>
         <!-- Set to false if not using ROS -->
         <controllable>true</controllable> <!-- electro-magnet -->
         <topicNs>magnet_weebee</topicNs>
@@ -139,9 +139,8 @@
       </link>
       <plugin name="dipole_magnet" filename="libstorm_gazebo_dipole_magnet.so">
           <bodyName>magnet</bodyName>
-          <dipole_moment>0 0 1</dipole_moment>
-          <debug>false</debug>
-          <control>false</control>
+          <debug>true</debug>
+          <controllable>false</controllable>
       </plugin>
     </model>
 

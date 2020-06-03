@@ -44,10 +44,10 @@ class DipoleMagnetContainer {
     bool controllable;
     bool magnet_cmd;
     double mass;
-    math::Vector3d moment;
     math::Pose3d offset;
     math::Pose3d pose;
     math::Pose3d range;
+    math::Pose3d vel_limit;
     std::uint32_t model_id;
   };
 

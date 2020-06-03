@@ -58,6 +58,9 @@ class DipoleMagnet : public ModelPlugin {
 
 
 
+  void LimitVelocity(math::Vector3d& v_cmd,
+                     math::Vector3d& v_limit);
+
   void Magnet_CB(const std_msgs::Bool& msg);
 
   // Pointer to the model
