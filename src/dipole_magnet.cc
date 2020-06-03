@@ -225,7 +225,7 @@ void DipoleMagnet::OnUpdate(const common::UpdateInfo & /*_info*/) {
         mfs = 0;
       }
 
-      if (!mag_other->should_publish || !mag_other->magnet_cmd) { // force, torque, mfs is only working on the magnet with no shouldPublish
+      if (!mag_other->should_publish || !mag_other->magnet_cmd) { // force, torque, mfs are only working on the magnet with no shouldPublish
         force_tmp = 0;
         torque_tmp = 0;
         mfs_tmp = 0;
