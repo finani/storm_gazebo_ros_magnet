@@ -77,6 +77,10 @@ class DipoleMagnet : public ModelPlugin {
   std::string topic_ns;
 
   bool debug;
+  double mass;
+  double Ixx;
+  double Iyy;
+  double Izz;
   ros::NodeHandle* rosnode;
   ros::Subscriber magnet_sub;
 

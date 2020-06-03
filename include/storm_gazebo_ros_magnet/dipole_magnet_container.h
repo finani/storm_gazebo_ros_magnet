@@ -43,7 +43,6 @@ class DipoleMagnetContainer {
     bool calculate;
     bool controllable;
     bool magnet_cmd;
-    double mass;
     math::Pose3d offset;
     math::Pose3d pose;
     math::Pose3d range;

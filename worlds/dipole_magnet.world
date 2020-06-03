@@ -96,6 +96,7 @@
       <plugin name="dipole_magnet" filename="libstorm_gazebo_dipole_magnet.so">
         <bodyName>magnet</bodyName>
         <xyzOffset>0 0 0.2</xyzOffset>
+        <rpyOffset>1.5707962368 0 0</rpyOffset>
         <xyzRange>0.5 0.5 10.0</xyzRange>
         <xyzVelLimit>5 5 10</xyzVelLimit>
         <debug>false</debug>
@@ -103,20 +104,20 @@
         <controllable>true</controllable> <!-- electro-magnet -->
         <topicNs>magnet_weebee</topicNs>
       </plugin>
-    </model>        
+    </model>
 
     <model name="capsule_magnet">
       <pose>0.08 0 1.025 0 0 0</pose>
       <link name="magnet">
         <inertial>
-          <mass>1.0</mass>
+          <mass>0.1</mass>
           <inertia>
-            <ixx>1.8e-7</ixx>
+            <ixx>1.8e-6</ixx>
             <ixy>0</ixy>
             <ixz>0</ixz>
-            <iyy>1.8e-7</iyy>
+            <iyy>1.8e-6</iyy>
             <iyz>0</iyz>
-            <izz>1.543e-7</izz>
+            <izz>1.543e-6</izz>
           </inertia>
         </inertial>
         <collision name="collision">
