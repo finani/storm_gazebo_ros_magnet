@@ -1,7 +1,7 @@
 ## Add compatibility with gazebo9 and change it to an capture module
 > capture and gazebo9 branches by finani
 - The default branch is 'capture' which is capturing something with the capture module. The model is a position-velocity, angle-angular velocity dynamic model with a P-P control loop.
-- The 'gazebo' branch is simulating dipole magnet in gazebo9, but it is unstable because of the magnet model.
+- The 'gazebo' branch is simulating dipole magnets in gazebo9, but it is unstable because of the magnet model.
 - I recommend using 'capture' branch.
 
 #
