@@ -1,30 +1,36 @@
-## Add compatibility with gazebo9 and change it to an electro-magnet
+## Add compatibility with gazebo9 and change it to an capture module
 > gazebo9 branch by finani
 1. gedit ~/.bashrc
 ```
 export GAZEBO_PLUGIN_PATH=$HOME/catkin_ws/build/storm_gazebo_magnet:$GAZEBO_PLUGIN_PATH
 ```
-2. source ~/.bashrc
+2. roslaunch storm_gazebo_magnet storm_gazebo_ros_magnet.launch
 
-3. gedit dipole_magnet.world
+3. rostopic pub /magnet_weebee/cmd std_msgs/Bool "data: true"
+> true : false, -r 10
+
+- source ~/.bashrc
+
+- gedit dipole_magnet.world
 ```
 <plugin name="dipole_magnet" filename="libstorm_gazebo_dipole_magnet.so">
   <bodyName>magnet</bodyName>
-  <dipole_moment>0 0 1.26</dipole_moment>
-  <xyzOffset>0 0 0</xyzOffset>
-  <rpyOffset>0 0 0</rpyOffset>
+  <xyzOffset>0 0 0.2</xyzOffset>
+  <rpyOffset>1.5707962368 0 0</rpyOffset>
+  <xyzRange>0.5 0.5 10.0</xyzRange>
+  <xyzVelLimit>5 5 10</xyzVelLimit>
   <debug>false</debug>
   <!-- Set to false if not using ROS -->
-  <shouldPublish>true</shouldPublish>
+  <controllable>true</controllable>
   <topicNs>magnet_weebee</topicNs>
-  <updateRate>100</updateRate>
+</plugin>
+
+<plugin name="dipole_magnet" filename="libstorm_gazebo_dipole_magnet.so">
+    <bodyName>magnet</bodyName>
+    <debug>true</debug>
+    <controllable>false</controllable>
 </plugin>
 ```
-
-4. roslaunch storm_gazebo_magnet storm_gazebo_ros_magnet.launch
-
-5. rostopic pub /magnet_weebee/cmd std_msgs/Bool "data: true"
-> true : false, -r 10
 
 #
 
